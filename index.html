@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GestureLab · Hand Gesture Recognition</title>
+<style>
+:root{--bg:#0b1020;--panel:#121a30;--panel2:#18223f;--line:#27345c;--text:#e8ecf8;--muted:#8e9bc0;--accent:#5eead4;--accent2:#818cf8;--ok:#4ade80;--warn:#fbbf24;--bad:#f87171;--r:16px;--bulb:#fde047}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:15px}
+button,input,select{font:inherit;color:inherit}
+.hidden{display:none!important}
+.muted{color:var(--muted)}
+.top{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:14px 20px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#10183018,transparent)}
+.brand{display:flex;align-items:center;gap:12px}
+.logo{font-size:30px;background:var(--panel2);border:1px solid var(--line);border-radius:14px;width:48px;height:48px;display:grid;place-items:center}
+h1{margin:0;font-size:20px;letter-spacing:.2px}
+.brand p{margin:2px 0 0;color:var(--muted);font-size:13px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;flex:1}
+.chips span{font-size:12px;padding:4px 10px;border-radius:999px;border:1px solid var(--line);color:var(--muted);background:var(--panel)}
+.btn{border:1px solid var(--line);background:var(--panel2);padding:9px 14px;border-radius:12px;cursor:pointer;transition:.15s}
+.btn:hover{border-color:var(--accent2);transform:translateY(-1px)}
+.btn.primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#06101f;font-weight:700;border:none}
+.btn.danger{border-color:#7f2d3a;color:#fecaca}
+.btn.sm{padding:5px 10px;font-size:13px;border-radius:9px}
+.grid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(340px,.9fr);gap:18px;padding:18px 20px;max-width:1500px;margin:0 auto}
+@media(max-width:960px){.grid{grid-template-columns:1fr;padding:12px}}
+.videoWrap{position:relative;background:#000;border-radius:var(--r);overflow:hidden;border:1px solid var(--line);aspect-ratio:4/3}
+#view{width:100%;height:100%;display:block;object-fit:contain;background:#05070f}
+#vid{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.badges{position:absolute;top:10px;left:10px;display:flex;gap:6px;flex-wrap:wrap}
+.badge{font-size:12px;padding:4px 9px;border-radius:999px;background:#000a;border:1px solid #fff2;backdrop-filter:blur(4px)}
+.badge.live{color:#fecaca;border-color:#f8717188}
+.badge.off{color:#cbd5e1}
+.badge.good{color:var(--ok)}.badge.warn{color:var(--warn)}.badge.bad{color:var(--bad)}
+.overlay{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:24px;background:#070b17e6}
+.overlay h2{margin:8px 0}
+.target{position:absolute;left:50%;top:14px;transform:translateX(-50%);padding:10px 18px;border-radius:14px;background:#0009;border:2px solid var(--accent);font-size:20px;font-weight:700;backdrop-filter:blur(6px);white-space:nowrap}
+.status{margin-top:10px;padding:10px 14px;border-radius:12px;background:var(--panel);border:1px solid var(--line);min-height:44px;display:flex;align-items:center;gap:8px}
+.status.warn{border-color:#8a6a12;color:#fde68a}
+.status.bad{border-color:#7f2d3a;color:#fecaca}
+.status.good{border-color:#1f6b45;color:#bbf7d0}
+.engine{margin-top:12px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:12px}
+.engine h3{margin:0 0 8px;font-size:13px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.8px}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.seg button{padding:9px 6px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);cursor:pointer;font-size:13px}
+.seg button.active{background:linear-gradient(135deg,#5eead433,#818cf833);border-color:var(--accent)}
+.seg small{display:block;color:var(--muted);font-size:11px;margin-top:2px}
+.tmbox{margin-top:10px;display:grid;gap:8px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+input[type=text],select{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px 10px;min-width:0}
+input[type=text]{flex:1}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.tabs{display:flex;gap:4px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:4px;margin-bottom:12px;overflow:auto}
+.tabs button{flex:1;border:none;background:transparent;padding:8px 10px;border-radius:10px;cursor:pointer;color:var(--muted);white-space:nowrap}
+.tabs button.active{background:var(--panel2);color:var(--text);box-shadow:inset 0 0 0 1px var(--line)}
+.panel{display:none}.panel.active{display:block}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px;margin-bottom:12px}
+.card h3{margin:0 0 10px;font-size:14px}
+.gbig{display:flex;align-items:center;gap:14px;margin-bottom:12px}
+#gEmoji{font-size:48px;line-height:1}
+#gName{font-size:22px;font-weight:700}
+.sub{color:var(--muted);font-size:13px}
+.meter{margin-top:8px}
+.meter label{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:4px}
+.bar{position:relative;height:10px;background:var(--panel2);border-radius:99px;overflow:hidden}
+.bar i{position:absolute;left:0;top:0;bottom:0;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:99px;transition:width .08s}
+.bar.hold i{background:linear-gradient(90deg,#fbbf24,#4ade80)}
+.bar u{position:absolute;top:-2px;bottom:-2px;width:2px;background:#fff9}
+.prow{display:grid;grid-template-columns:110px 1fr 42px;gap:8px;align-items:center;margin:5px 0;font-size:13px}
+.prow .pbar{height:8px;background:var(--panel2);border-radius:99px;overflow:hidden}
+.prow .pbar i{display:block;height:100%;background:var(--accent2);width:0;transition:width .1s}
+.prow .pv{text-align:right;color:var(--muted)}
+.stage{position:relative;height:210px;border-radius:14px;background:radial-gradient(circle at 50% 40%,#1b2750,#0d1328);display:grid;place-items:center;overflow:hidden;transition:.3s}
+.stage.on{background:radial-gradient(circle at 50% 40%,color-mix(in srgb,var(--bulb) 30%,#1b2750),#0d1328)}
+.bulb{width:84px;height:84px;border-radius:50%;background:#2a3358;border:3px solid #3b4678;transition:.3s}
+.stage.on .bulb{background:var(--bulb);border-color:#fff;box-shadow:0 0 40px 14px var(--bulb),0 0 110px 40px color-mix(in srgb,var(--bulb) 45%,transparent)}
+.bulb-base{width:36px;height:16px;background:#3b4678;border-radius:0 0 8px 8px;margin:-4px auto 0}
+.stage-title{position:absolute;bottom:10px;left:0;right:0;text-align:center;font-weight:600}
+.likes{position:absolute;top:10px;right:12px;font-size:18px}
+.snaps{position:absolute;top:10px;left:12px;font-size:13px;color:var(--muted)}
+.floaters span{position:absolute;bottom:20px;font-size:30px;animation:fly 1.7s ease-out forwards;pointer-events:none}
+@keyframes fly{to{transform:translateY(-190px);opacity:0}}
+.guide{display:grid;gap:6px}
+.guide div{display:flex;gap:10px;align-items:center;font-size:13px;padding:6px 8px;border-radius:10px;background:var(--panel2)}
+.guide b{min-width:96px}
+.cls{display:grid;grid-template-columns:34px 1fr auto auto;gap:8px;align-items:center;padding:8px;border-radius:12px;background:var(--panel2);margin-bottom:6px}
+.cls .e{font-size:24px}
+.cls .n{font-size:14px;font-weight:600}
+.cls .c{font-size:12px;color:var(--muted)}
+.cls .bar{height:5px;margin-top:5px}
+.tips{margin:8px 0 0;padding-left:18px;color:var(--muted);font-size:13px}
+.tips li{margin:3px 0}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left}
+th{color:var(--muted);font-weight:600}
+.kv{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px}
+.kv div{background:var(--panel2);border-radius:12px;padding:10px;text-align:center}
+.kv b{display:block;font-size:20px}
+.kv span{font-size:11px;color:var(--muted)}
+.log{max-height:240px;overflow:auto;font-size:12.5px}
+.log div{padding:5px 2px;border-bottom:1px solid var(--line);display:flex;gap:8px}
+.log time{color:var(--muted);min-width:64px}
+.set{display:grid;gap:12px}
+.set label.t{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-bottom:4px}
+.chk{display:flex;gap:10px;align-items:center;font-size:14px;padding:6px 0}
+.chk input{accent-color:var(--accent);width:18px;height:18px}
+.modal{position:fixed;inset:0;background:#030612cc;display:grid;place-items:center;z-index:50;padding:16px;backdrop-filter:blur(6px)}
+.modal .box{background:var(--panel);border:1px solid var(--line);border-radius:20px;max-width:480px;padding:24px}
+.modal h2{margin:0 0 8px}
+.modal ul{padding-left:20px;color:#cbd5f5}
+.modal li{margin:6px 0}
+#toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(30px);background:#0b1020f0;border:1px solid var(--accent);padding:10px 16px;border-radius:12px;opacity:0;transition:.25s;z-index:60;pointer-events:none;max-width:90vw}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.spin{width:34px;height:34px;border:4px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:sp 1s linear infinite;margin:0 auto 10px}
+@keyframes sp{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="brand">
+    <div class="logo">🖐️</div>
+    <div><h1>GestureLab</h1><p>Hand gesture recognition · HCI project</p></div>
+  </div>
+  <div class="chips">
+    <span>🎯 Accuracy</span><span>💡 Lighting</span><span>🔔 Feedback</span><span>❓ Uncertainty</span><span>🔒 Privacy</span>
+  </div>
+  <button id="btnCam" class="btn primary">Start camera</button>
+</header>
+
+<main class="grid">
+  <section>
+    <div class="videoWrap" id="videoWrap">
+      <canvas id="view" width="960" height="720"></canvas>
+      <video id="vid" playsinline muted></video>
+      <div class="badges">
+        <span id="liveBadge" class="badge off">● CAMERA OFF</span>
+        <span id="fpsBadge" class="badge">0 FPS</span>
+        <span id="lightBadge" class="badge">Light —</span>
+      </div>
+      <div id="targetBanner" class="target hidden"></div>
+      <div id="empty" class="overlay">
+        <div>
+          <div style="font-size:54px">📷</div>
+          <h2>Camera is off</h2>
+          <p class="muted">Everything runs in your browser. No video is recorded or uploaded.</p>
+          <button class="btn primary" id="btnCam2">Start camera</button>
+        </div>
+      </div>
+      <div id="loader" class="overlay hidden">
+        <div><div class="spin"></div><div id="loaderMsg">Loading…</div></div>
+      </div>
+    </div>
+    <div id="status" class="status">Camera is off.</div>
+
+    <div class="engine">
+      <h3>Recognition engine</h3>
+      <div class="seg" id="engineSeg">
+        <button data-mode="rules" class="active">Landmark AI<small>works on any hand</small></button>
+        <button data-mode="knn">My trained model<small>learns your hands</small></button>
+        <button data-mode="tm">Teachable Machine<small>paste model link</small></button>
+      </div>
+      <div id="tmBox" class="tmbox hidden">
+        <div class="row">
+          <input type="text" id="tmUrl" placeholder="https://teachablemachine.withgoogle.com/models/XXXXXXX/">
+          <button class="btn sm" id="btnTm">Load model</button>
+        </div>
+        <label class="chk"><input type="checkbox" id="chkFlipTM" checked> Flip input like Teachable Machine webcam (recommended)</label>
+        <div class="sub" id="tmMsg">Train 3 classes (Open Hand, Fist, Thumbs Up) plus a Background class, export → Upload my model → paste the link.</div>
+      </div>
+    </div>
+  </section>
+
+  <aside>
+    <nav class="tabs" id="tabs">
+      <button data-tab="live" class="active">Live</button>
+      <button data-tab="train">Train</button>
+      <button data-tab="test">Evaluate</button>
+      <button data-tab="log">Log</button>
+      <button data-tab="set">Settings</button>
+    </nav>
+
+    <div class="panel active" id="p-live">
+      <div class="card">
+        <div class="gbig"><span id="gEmoji">🖐️</span><div><div id="gName">Waiting…</div><div class="sub" id="gAction">Show a gesture to the camera</div></div></div>
+        <div class="meter"><label><span>Confidence</span><b id="gConf">0%</b></label><div class="bar"><i id="confFill"></i><u id="thrMark"></u></div></div>
+        <div class="meter"><label><span>Hold steady to trigger action</span></label><div class="bar hold"><i id="holdFill"></i></div></div>
+      </div>
+      <div class="card"><h3>Class probabilities</h3><div id="probs"></div></div>
+      <div class="card">
+        <h3>Action stage</h3>
+        <div class="stage" id="stage">
+          <div class="snaps">📸 <span id="snaps">0</span></div>
+          <div class="likes">👍 <b id="likes">0</b></div>
+          <div><div class="bulb" id="bulb"></div><div class="bulb-base"></div></div>
+          <div class="stage-title" id="stageTitle">Light is OFF</div>
+          <div class="floaters" id="floaters"></div>
+        </div>
+      </div>
+      <div class="card"><h3>Gesture → action</h3><div class="guide" id="guide"></div></div>
+    </div>
+
+    <div class="panel" id="p-train">
+      <div class="card">
+        <h3>Train on your own hands</h3>
+        <p class="sub" style="margin-top:0">Like Teachable Machine, but on hand landmarks. Press <b>Record</b>, get ready for 1.5 s, then slowly move and rotate your hand while it captures samples. Samples are mirrored automatically so left and right hands both work.</p>
+        <div id="classes"></div>
+        <div class="row" style="margin-top:8px">
+          <button class="btn primary sm" id="btnUseKnn">Use trained model</button>
+          <button class="btn sm" id="btnExport">Export</button>
+          <button class="btn sm" id="btnImport">Import</button>
+          <button class="btn sm danger" id="btnClearAll">Erase all</button>
+          <input type="file" id="fileImport" accept="application/json" class="hidden">
+        </div>
+        <ul class="tips">
+          <li>For best accuracy record each gesture with <b>different hands</b> (ask friends, then Export/Import to merge) and different distances.</li>
+          <li>Record "No gesture" with a relaxed hand and random in-between poses so the model learns to stay quiet.</li>
+          <li>Record again in dim and bright light to make it robust.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="panel" id="p-test">
+      <div class="card">
+        <h3>Accuracy test</h3>
+        <p class="sub" style="margin-top:0">The app asks for each gesture in random order and records whether the recognised gesture matches, plus the time it took. Run it in different conditions and compare.</p>
+        <div class="row">
+          <input type="text" id="testTag" list="tagList" placeholder="Condition (e.g. Dim light)" value="Normal light">
+          <datalist id="tagList"><option value="Normal light"><option value="Dim light"><option value="Bright / backlit"><option value="Left hand"><option value="Right hand"><option value="Different person"></datalist>
+          <select id="testRounds"><option value="2">2 rounds</option><option value="3" selected>3 rounds</option><option value="5">5 rounds</option></select>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <button class="btn primary sm" id="btnTest">Start test</button>
+          <button class="btn sm" id="btnTestCsv">Export CSV</button>
+          <button class="btn sm danger" id="btnTestClear">Clear</button>
+        </div>
+      </div>
+      <div class="card"><h3>Results by condition</h3><div id="testResults"></div></div>
+    </div>
+
+    <div class="panel" id="p-log">
+      <div class="card">
+        <h3>Session statistics</h3>
+        <div class="kv">
+          <div><b id="stTrig">0</b><span>actions triggered</span></div>
+          <div><b id="stConf">—</b><span>avg confidence</span></div>
+          <div><b id="stUnc">0%</b><span>uncertain frames</span></div>
+        </div>
+        <div class="row"><button class="btn sm" id="btnLogCsv">Export log CSV</button><button class="btn sm danger" id="btnLogClear">Clear</button></div>
+      </div>
+      <div class="card"><h3>Event log</h3><div class="log" id="logList"><span class="muted">No events yet.</span></div></div>
+    </div>
+
+    <div class="panel" id="p-set">
+      <div class="card set">
+        <div><label class="t"><span>Confidence threshold (below = "not sure")</span><b id="thrVal">65%</b></label><input type="range" id="thr" min="30" max="95" value="65"></div>
+        <div><label class="t"><span>Hold time before action</span><b id="holdVal">600 ms</b></label><input type="range" id="hold" min="200" max="1500" step="50" value="600"></div>
+        <div class="row"><span class="sub">Hands tracked</span><select id="maxHands"><option value="1">1</option><option value="2" selected>2</option></select>
+          <span class="sub" style="margin-left:8px">Camera</span><select id="camSel"><option value="">Default</option></select></div>
+        <div>
+          <label class="chk"><input type="checkbox" id="chkMirror" checked> Mirror view</label>
+          <label class="chk"><input type="checkbox" id="chkLm" checked> Show hand skeleton</label>
+          <label class="chk"><input type="checkbox" id="chkPriv"> Privacy mode (hide camera image, show only skeleton)</label>
+          <label class="chk"><input type="checkbox" id="chkBonus" checked> Bonus gestures (Peace, Pointing)</label>
+          <label class="chk"><input type="checkbox" id="chkSound" checked> Sound feedback</label>
+          <label class="chk"><input type="checkbox" id="chkVoice"> Voice feedback</label>
+        </div>
+        <div class="sub">🔒 Video stays on this device. The camera stops automatically when you leave the tab.</div>
+      </div>
+    </div>
+  </aside>
+</main>
+
+<div id="consent" class="modal hidden">
+  <div class="box">
+    <h2>🔒 Camera permission</h2>
+    <p class="muted">GestureLab needs your webcam to see your hand.</p>
+    <ul>
+      <li>All processing happens <b>locally in your browser</b>.</li>
+      <li>No video or images are recorded, stored or uploaded.</li>
+      <li>Only hand-landmark numbers you choose to record are saved, on this device.</li>
+      <li>Use <b>Privacy mode</b> to hide your camera image, and stop the camera any time.</li>
+    </ul>
+    <div class="row" style="justify-content:flex-end;margin-top:14px">
+      <button class="btn" id="consentNo">Cancel</button>
+      <button class="btn primary" id="consentYes">Allow camera</button>
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/hands.js" crossorigin="anonymous"></script>
+<script>
+(()=>{
+'use strict';
+const $=s=>document.querySelector(s);
+const $$=s=>[...document.querySelectorAll(s)];
+const clamp=(v,a=0,b=1)=>Math.min(b,Math.max(a,v));
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* ---------- Gestures ---------- */
+const GESTURES={
+  open :{name:'Open Hand', emoji:'🖐️',color:'#4ade80',action:'Light ON',freq:660},
+  fist :{name:'Fist',      emoji:'✊',color:'#f87171',action:'Light OFF',freq:330},
+  thumb:{name:'Thumbs Up', emoji:'👍',color:'#facc15',action:'Like +1',freq:880},
+  peace:{name:'Peace',     emoji:'✌️',color:'#60a5fa',action:'Take snapshot',freq:740},
+  point:{name:'Pointing',  emoji:'☝️',color:'#c084fc',action:'Change light colour',freq:520},
+  none :{name:'No gesture',emoji:'·', color:'#94a3b8',action:'—',freq:0}
+};
+const CORE=['open','fist','thumb'];
+const TRAIN_CLASSES=['open','fist','thumb','peace','point','none'];
+const metaOf=k=>GESTURES[k]||{name:String(k||'').replace(/^tm:/,''),emoji:'🤚',color:'#94a3b8',action:'—',freq:600};
+const CONN=[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
+
+const state={mode:'rules',thr:.65,holdMs:600,maxHands:2,mirror:true,landmarks:true,privacy:false,bonus:true,sound:true,voice:false,flipTM:true};
+let hands=null,stream=null,running=false,busy=false,fps=0,frames=0,fpsT=performance.now();
+let hist=[],holdKey=null,holdStart=0,fired=false,lastSeenT=0,progress=0;
+let lum=null,lightT=0;
+let likes=0,snaps=0,lightOn=false,colorIdx=0;
+const BULB=['#fde047','#60a5fa','#f472b6','#4ade80','#fb923c'];
+const WIN=10;
+
+const vid=$('#vid'),cv=$('#view'),ctx=cv.getContext('2d');
+const lc=document.createElement('canvas');lc.width=32;lc.height=24;const lctx=lc.getContext('2d',{willReadFrequently:true});
+const tmc=document.createElement('canvas');
+
+/* ---------- Helpers ---------- */
+function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('show'),2400);}
+function aspect(){return (vid.videoWidth||4)/(vid.videoHeight||3);}
+function d3(a,b){const A=aspect();return Math.hypot((a.x-b.x)*A,a.y-b.y,((a.z||0)-(b.z||0))*A);}
+function setStatus(msg,cls){const s=$('#status');s.textContent=msg;s.className='status'+(cls?' '+cls:'');}
+let actx=null;
+function beep(freq){if(!state.sound||!freq)return;try{actx=actx||new(window.AudioContext||window.webkitAudioContext)();const o=actx.createOscillator(),g=actx.createGain();o.type='sine';o.frequency.value=freq;g.gain.value=.08;o.connect(g);g.connect(actx.destination);o.start();g.gain.exponentialRampToValueAtTime(.0001,actx.currentTime+.18);o.stop(actx.currentTime+.18);}catch(e){}}
+function speak(t){if(!state.voice||!('speechSynthesis' in window))return;try{speechSynthesis.cancel();speechSynthesis.speak(new SpeechSynthesisUtterance(t));}catch(e){}}
+function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=()=>rej(new Error('Failed to load '+src));document.head.appendChild(s);});}
+function download(name,text,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:type||'text/plain'}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);}
+const csvCell=v=>'"'+String(v).replace(/"/g,'""')+'"';
+
+/* ---------- Classifiers ---------- */
+function finish(sc){
+  const keys=Object.keys(sc);const sum=keys.reduce((a,k)=>a+sc[k],0);
+  const sorted=keys.slice().sort((a,b)=>sc[b]-sc[a]);
+  const top=sc[sorted[0]],second=sorted[1]?sc[sorted[1]]:0;
+  const conf=clamp(top*(0.6+0.4*clamp((top-second)/0.4)));
+  const probs={};keys.forEach(k=>probs[k]=sc[k]/(sum+0.25));
+  return {key:sorted[0],conf,probs};
+}
+function classifyRules(lm){
+  const W=lm[0];const palm=Math.max(d3(lm[0],lm[9]),1e-4);
+  const ext=(tip,pip)=>clamp((d3(lm[tip],W)/Math.max(d3(lm[pip],W),1e-6)-0.95)/0.25);
+  const e=[ext(8,6),ext(12,10),ext(16,14),ext(20,18)];const c=e.map(v=>1-v);
+  const te=clamp((d3(lm[4],lm[5])/palm-0.5)/0.35);
+  const A=aspect();const dx=(lm[4].x-lm[2].x)*A,dy=lm[4].y-lm[2].y;const len=Math.hypot(dx,dy)||1;
+  const up=clamp((-dy/len-0.3)/0.5);
+  const S=a=>0.5*(a.reduce((x,y)=>x+y,0)/a.length)+0.5*Math.min(...a);
+  const sc={open:S([...e,0.6+0.4*te]),fist:S([...c,1-0.8*te]),thumb:S([...c,te,up])};
+  if(state.bonus){sc.peace=S([e[0],e[1],c[2],c[3]]);sc.point=S([e[0],c[1],c[2],c[3]]);}
+  return finish(sc);
+}
+/* kNN on normalised landmarks */
+let samples=[];
+function feat(lm,mirror){
+  const A=aspect();const w=lm[0];const palm=Math.max(d3(lm[0],lm[9]),1e-4);const out=new Array(63);
+  for(let i=0;i<21;i++){const p=lm[i];let x=(p.x-w.x)*A/palm;out[i*3]=mirror?-x:x;out[i*3+1]=(p.y-w.y)/palm;out[i*3+2]=((p.z||0)-(w.z||0))*A/palm;}
+  return out;
+}
+function mirrorFeat(f){const o=f.slice();for(let i=0;i<63;i+=3)o[i]=-o[i];return o;}
+function classifyKNN(lm){
+  if(samples.length<10)return null;
+  const f=feat(lm,false);const arr=new Array(samples.length);
+  for(let j=0;j<samples.length;j++){const s=samples[j].f;let dd=0;for(let i=0;i<63;i++){const t=f[i]-s[i];dd+=t*t;}arr[j]=[Math.sqrt(dd),samples[j].label];}
+  arr.sort((a,b)=>a[0]-b[0]);
+  const k=Math.min(9,arr.length);const votes={};let tot=0;
+  for(let i=0;i<k;i++){const w=1/(arr[i][0]+0.05);votes[arr[i][1]]=(votes[arr[i][1]]||0)+w;tot+=w;}
+  const probs={};let best=null;
+  TRAIN_CLASSES.forEach(c=>{if(votes[c]){probs[c]=votes[c]/tot;if(!best||probs[c]>probs[best])best=c;}});
+  const dF=clamp(1.3-arr[0][0]/5,0.15,1);
+  return {key:best,conf:clamp(probs[best]*dF),probs};
+}
+/* Teachable Machine */
+let tmModel=null;
+function mapTM(name){
+  const n=name.toLowerCase();
+  if(/background|none|neutral|nothing|empty|no hand|idle/.test(n))return 'none';
+  if(/fist|closed|close/.test(n))return 'fist';
+  if(/thumb|like|up/.test(n))return 'thumb';
+  if(/peace|victory|two/.test(n))return 'peace';
+  if(/point|index/.test(n))return 'point';
+  if(/open|palm|five|hand|wave|stop/.test(n))return 'open';
+  return 'tm:'+name;
+}
+async function loadTM(){
+  let url=$('#tmUrl').value.trim();if(!url){toast('Paste your Teachable Machine model link first');return;}
+  if(!url.endsWith('/'))url+='/';
+  $('#tmMsg').textContent='Loading model…';
+  try{
+    if(typeof tf==='undefined')await loadScript('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js');
+    if(typeof tmImage==='undefined')await loadScript('https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js');
+    tmModel=await tmImage.load(url+'model.json',url+'metadata.json');
+    const labels=tmModel.getClassLabels();
+    $('#tmMsg').textContent='Loaded ✔ classes: '+labels.join(', ');
+    toast('Teachable Machine model loaded');
+  }catch(err){tmModel=null;$('#tmMsg').textContent='Could not load model: '+err.message+' (check the link ends with /models/ID/)';}
+}
+async function classifyTM(){
+  if(!tmModel||!vid.videoWidth)return null;
+  tmc.width=vid.videoWidth;tmc.height=vid.videoHeight;const c=tmc.getContext('2d');
+  c.save();if(state.flipTM){c.translate(tmc.width,0);c.scale(-1,1);}c.drawImage(vid,0,0);c.restore();
+  const out=await tmModel.predict(tmc);const probs={};let best=null;
+  out.forEach(o=>{const k=mapTM(o.className);probs[k]=Math.max(probs[k]||0,o.probability);if(!best||probs[k]>probs[best])best=k;});
+  return {key:best,conf:probs[best],probs};
+}
+
+/* ---------- Training UI ---------- */
+const SKEY='gesturelab.samples.v1';
+function loadSamples(){try{const raw=JSON.parse(localStorage.getItem(SKEY)||'[]');raw.forEach(r=>addSample(r.l,r.f));}catch(e){}}
+function addSample(label,f){samples.push({label,f,m:false});samples.push({label,f:mirrorFeat(f),m:true});}
+function saveSamples(){try{localStorage.setItem(SKEY,JSON.stringify(samples.filter(s=>!s.m).map(s=>({l:s.label,f:s.f.map(v=>+v.toFixed(4))}))));}catch(e){}}
+const countOf=k=>samples.filter(s=>s.label===k&&!s.m).length;
+let rec=null;
+function renderTrain(){
+  $('#classes').innerHTML=TRAIN_CLASSES.map(k=>{const m=metaOf(k),n=countOf(k);const recording=rec&&rec.label===k;
+    const btn=recording?(performance.now()<rec.startAt?'Get ready…':'Recording '+Math.round(rec.n/rec.target*100)+'%'):'Record';
+    return `<div class="cls"><span class="e">${m.emoji}</span><div><div class="n">${k==='none'?'No gesture / relaxed':m.name}</div><div class="c">${n} samples${n&&n<30?' · record more':''}</div><div class="bar"><i style="width:${clamp(n/60)*100}%"></i></div></div><button class="btn sm" data-rec="${k}">${btn}</button><button class="btn sm" data-clr="${k}" title="Clear">✕</button></div>`;}).join('');
+}
+$('#classes').addEventListener('click',e=>{
+  const r=e.target.closest('[data-rec]'),c=e.target.closest('[data-clr]');
+  if(r){if(!running){toast('Start the camera first');return;}rec={label:r.dataset.rec,n:0,target:60,last:0,startAt:performance.now()+1500};renderTrain();}
+  if(c){samples=samples.filter(s=>s.label!==c.dataset.clr);saveSamples();renderTrain();}
+});
+$('#btnUseKnn').onclick=()=>{if(samples.length<10){toast('Record some samples first');return;}setMode('knn');toast('Using your trained model');};
+$('#btnClearAll').onclick=()=>{if(confirm('Erase all recorded samples?')){samples=[];saveSamples();renderTrain();}};
+$('#btnExport').onclick=()=>download('gesturelab-samples.json',JSON.stringify(samples.filter(s=>!s.m).map(s=>({l:s.label,f:s.f.map(v=>+v.toFixed(4))}))),'application/json');
+$('#btnImport').onclick=()=>$('#fileImport').click();
+$('#fileImport').onchange=async e=>{
+  const f=e.target.files[0];if(!f)return;
+  try{const arr=JSON.parse(await f.text());let n=0;arr.forEach(r=>{if(TRAIN_CLASSES.includes(r.l)&&Array.isArray(r.f)&&r.f.length===63){addSample(r.l,r.f);n++;}});saveSamples();renderTrain();toast('Imported '+n+' samples');}
+  catch(err){toast('Invalid file');}
+  e.target.value='';
+};
+
+/* ---------- Actions ---------- */
+function setLight(on){lightOn=on;$('#stage').classList.toggle('on',on);$('#stageTitle').textContent=on?'Light is ON':'Light is OFF';}
+function floatEmoji(em){const s=document.createElement('span');s.textContent=em;s.style.left=(15+Math.random()*70)+'%';$('#floaters').appendChild(s);setTimeout(()=>s.remove(),1800);}
+function snapshot(){try{cv.toBlob(b=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='gesture-snapshot-'+Date.now()+'.png';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);});}catch(e){}snaps++;$('#snaps').textContent=snaps;}
+const stats={trig:0,confSum:0,handFrames:0,uncertain:0};
+function triggerAction(key,conf){
+  const m=metaOf(key);
+  switch(key){
+    case 'open':setLight(true);break;
+    case 'fist':setLight(false);break;
+    case 'thumb':likes++;$('#likes').textContent=likes;for(let i=0;i<4;i++)setTimeout(()=>floatEmoji('👍'),i*120);break;
+    case 'peace':snapshot();break;
+    case 'point':colorIdx=(colorIdx+1)%BULB.length;document.documentElement.style.setProperty('--bulb',BULB[colorIdx]);if(!lightOn)setLight(true);break;
+  }
+  beep(m.freq);speak(m.name);toast(m.emoji+' '+m.name+' → '+m.action);
+  stats.trig++;stats.confSum+=conf;addLog('action',key,conf);renderStats();
+}
+/* ---------- Log ---------- */
+const logs=[];
+function lightLabel(){return lum==null?'':(lum<50?'too dark':lum<80?'dim':lum>190?'too bright':'good');}
+function addLog(type,key,conf,extra){logs.push({t:new Date(),type,key,conf,mode:state.mode,light:lightLabel(),extra:extra||''});renderLog();}
+function renderLog(){
+  const box=$('#logList');if(!logs.length){box.innerHTML='<span class="muted">No events yet.</span>';return;}
+  box.innerHTML=logs.slice(-40).reverse().map(l=>`<div><time>${l.t.toLocaleTimeString()}</time><span>${metaOf(l.key).emoji} ${esc(metaOf(l.key).name)} · ${Math.round(l.conf*100)}% · ${esc(l.type)}${l.extra?' · '+esc(l.extra):''}</span></div>`).join('');
+}
+function renderStats(){
+  $('#stTrig').textContent=stats.trig;$('#stConf').textContent=stats.trig?Math.round(stats.confSum/stats.trig*100)+'%':'—';
+  $('#stUnc').textContent=stats.handFrames?Math.round(stats.uncertain/stats.handFrames*100)+'%':'0%';
+}
+$('#btnLogCsv').onclick=()=>{const rows=['time,type,gesture,confidence,engine,lighting,note'].concat(logs.map(l=>[l.t.toISOString(),l.type,metaOf(l.key).name,l.conf.toFixed(3),l.mode,l.light,l.extra].map(csvCell).join(',')));download('gesturelab-log.csv',rows.join('\n'),'text/csv');};
+$('#btnLogClear').onclick=()=>{logs.length=0;stats.trig=stats.confSum=stats.handFrames=stats.uncertain=0;renderLog();renderStats();};
+
+/* ---------- Accuracy test ---------- */
+let test={active:false};const runs=[];
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+$('#btnTest').onclick=()=>{
+  if(!running){toast('Start the camera first');return;}
+  if(test.active){endTest(true);return;}
+  const rounds=+$('#testRounds').value;let list=[];for(let i=0;i<rounds;i++)list=list.concat(shuffle(CORE.slice()));
+  test={active:true,list,idx:0,phase:'wait',nextT:performance.now()+2500,startT:0,run:{tag:$('#testTag').value.trim()||'Untitled',time:new Date(),trials:[]},banner:''};
+  hist.length=0;holdKey=null;$('#btnTest').textContent='Stop test';
+  $('#targetBanner').classList.remove('hidden');
+};
+function setBanner(html){if(test.banner!==html){test.banner=html;$('#targetBanner').innerHTML=html;}}
+function handleTest(now,stable,conf){
+  if(test.phase==='wait'){
+    const left=Math.max(0,Math.ceil((test.nextT-now)/1000));
+    setBanner(test.idx===0&&!test.run.trials.length?'Get ready… '+left:'Next gesture… ');
+    if(now>=test.nextT){test.phase='run';test.startT=now;hist.length=0;}
+  }else{
+    const tk=test.list[test.idx],m=metaOf(tk);
+    setBanner(`Show ${m.emoji} ${m.name} <span class="sub">(${test.idx+1}/${test.list.length})</span>`);
+    const el=now-test.startT;
+    let res=null;
+    if(stable&&stable!=='none'&&el>400)res={predicted:stable,ok:stable===tk,ms:el,conf};
+    else if(el>7000)res={predicted:'timeout',ok:false,ms:el,conf:0};
+    if(res){
+      test.run.trials.push({target:tk,...res});addLog('test',res.predicted==='timeout'?tk:res.predicted,res.conf,(res.ok?'correct':'wrong')+' (target '+m.name+')');
+      beep(res.ok?880:220);setBanner(res.ok?'✅ Correct!':'❌ Recognised: '+(res.predicted==='timeout'?'nothing':metaOf(res.predicted).name));
+      test.idx++;test.phase='wait';test.nextT=now+1400;test.banner='__';
+      if(test.idx>=test.list.length)setTimeout(()=>endTest(false),1200);
+    }
+  }
+}
+function endTest(aborted){
+  if(!test.active)return;const run=test.run;test.active=false;$('#btnTest').textContent='Start test';$('#targetBanner').classList.add('hidden');
+  if(!aborted&&run.trials.length){runs.push(run);renderTests();const ok=run.trials.filter(t=>t.ok).length;toast('Test done: '+Math.round(ok/run.trials.length*100)+'% accuracy');selectTab('test');}
+}
+function renderTests(){
+  const box=$('#testResults');if(!runs.length){box.innerHTML='<p class="muted" style="margin:0">No tests yet. Run one to see accuracy per condition.</p>';return;}
+  const rows=runs.map(r=>{const ok=r.trials.filter(t=>t.ok);const ms=ok.length?ok.reduce((a,t)=>a+t.ms,0)/ok.length:0;return `<tr><td>${esc(r.tag)}</td><td><b>${Math.round(ok.length/r.trials.length*100)}%</b></td><td>${ms?Math.round(ms)+' ms':'—'}</td><td>${r.trials.length}</td></tr>`;}).join('');
+  const last=runs[runs.length-1];const cols=CORE.concat(['other','timeout']);
+  const mat=CORE.map(t=>{const cells=cols.map(c=>last.trials.filter(x=>x.target===t&&(CORE.includes(c)?x.predicted===c:c==='timeout'?x.predicted==='timeout':(!CORE.includes(x.predicted)&&x.predicted!=='timeout'))).length);return `<tr><th>${metaOf(t).emoji}</th>${cells.map(n=>`<td>${n}</td>`).join('')}</tr>`;}).join('');
+  box.innerHTML=`<table><tr><th>Condition</th><th>Accuracy</th><th>Avg time</th><th>Trials</th></tr>${rows}</table>
+  <h3 style="margin:14px 0 6px;font-size:13px" class="muted">Confusion matrix – latest run (rows: asked, columns: recognised)</h3>
+  <table><tr><th></th>${cols.map(c=>`<th>${CORE.includes(c)?metaOf(c).emoji:c}</th>`).join('')}</tr>${mat}</table>`;
+}
+$('#btnTestCsv').onclick=()=>{
+  const rows=['condition,time,target,recognised,correct,time_ms,confidence'];
+  runs.forEach(r=>r.trials.forEach(t=>rows.push([r.tag,r.time.toISOString(),metaOf(t.target).name,t.predicted==='timeout'?'timeout':metaOf(t.predicted).name,t.ok,Math.round(t.ms),t.conf.toFixed(3)].map(csvCell).join(','))));
+  if(rows.length===1){toast('No test data yet');return;}download('gesturelab-accuracy.csv',rows.join('\n'),'text/csv');
+};
+$('#btnTestClear').onclick=()=>{runs.length=0;renderTests();};
+
+/* ---------- Lighting & hints ---------- */
+function measureLight(){
+  if(!vid.videoWidth)return;lctx.drawImage(vid,0,0,32,24);const d=lctx.getImageData(0,0,32,24).data;let s=0;
+  for(let i=0;i<d.length;i+=4)s+=0.2126*d[i]+0.7152*d[i+1]+0.0722*d[i+2];
+  lum=s/(d.length/4);const b=$('#lightBadge');
+  let txt,cls;if(lum<50){txt='Too dark';cls='bad';}else if(lum<80){txt='Dim';cls='warn';}else if(lum>190){txt='Too bright';cls='bad';}else{txt='Good light';cls='good';}
+  b.textContent='💡 '+txt;b.className='badge '+cls;
+}
+
+/* ---------- Drawing ---------- */
+function drawFrame(){
+  const W=cv.width,H=cv.height;ctx.save();
+  if(state.privacy){ctx.fillStyle='#0b1020';ctx.fillRect(0,0,W,H);ctx.fillStyle='#8e9bc0';ctx.font=Math.round(W/46)+'px system-ui';ctx.fillText('🔒 Privacy mode: camera image hidden',W*0.03,H*0.96);}
+  else{if(state.mirror){ctx.translate(W,0);ctx.scale(-1,1);}ctx.drawImage(vid,0,0,W,H);}
+  ctx.restore();
+}
+function drawHand(h,primary){
+  const W=cv.width,H=cv.height;const px=p=>[(state.mirror?1-p.x:p.x)*W,p.y*H];
+  const ok=h.pred&&h.pred.conf>=state.thr;const m=metaOf(h.pred&&h.pred.key);const col=ok?m.color:'#94a3b8';
+  if(state.landmarks){
+    ctx.lineWidth=Math.max(2,W/300);ctx.strokeStyle=col;ctx.lineCap='round';
+    CONN.forEach(([a,b])=>{const A=px(h.lm[a]),B=px(h.lm[b]);ctx.beginPath();ctx.moveTo(A[0],A[1]);ctx.lineTo(B[0],B[1]);ctx.stroke();});
+    h.lm.forEach(p=>{const [x,y]=px(p);ctx.beginPath();ctx.arc(x,y,Math.max(2.5,W/230),0,7);ctx.fillStyle='#fff';ctx.fill();ctx.stroke();});
+  }
+  const pts=h.lm.map(px);const xs=pts.map(p=>p[0]),ys=pts.map(p=>p[1]);const pad=W/60;
+  const x0=Math.min(...xs)-pad,y0=Math.min(...ys)-pad,x1=Math.max(...xs)+pad,y1=Math.max(...ys)+pad;
+  ctx.save();ctx.setLineDash([8,6]);ctx.lineWidth=2;ctx.strokeStyle=col;ctx.strokeRect(x0,y0,x1-x0,y1-y0);ctx.restore();
+  const label=h.side+' · '+(ok?m.name+' '+Math.round(h.pred.conf*100)+'%':'not sure');
+  ctx.font='600 '+Math.round(W/50)+'px system-ui';const tw=ctx.measureText(label).width+16,th=Math.round(W/36);
+  const lx=clamp(x0,0,W-tw),ly=Math.max(th+2,y0-4);
+  ctx.fillStyle=col;ctx.beginPath();ctx.roundRect?ctx.roundRect(lx,ly-th,tw,th,8):ctx.rect(lx,ly-th,tw,th);ctx.fill();
+  ctx.fillStyle='#07101f';ctx.textBaseline='middle';ctx.fillText(label,lx+8,ly-th/2);ctx.textBaseline='alphabetic';
+  if(primary&&progress>0&&progress<1){
+    const c=px(h.lm[9]);const r=Math.max(18,h.palm*W*0.85);
+    ctx.lineWidth=Math.max(5,W/120);ctx.strokeStyle='#fff3';ctx.beginPath();ctx.arc(c[0],c[1],r,0,Math.PI*2);ctx.stroke();
+    ctx.strokeStyle='#4ade80';ctx.beginPath();ctx.arc(c[0],c[1],r,-Math.PI/2,-Math.PI/2+progress*Math.PI*2);ctx.stroke();
+  }
+}
+
+/* ---------- Readout ---------- */
+let probKeys='';
+function renderProbs(pred){
+  const box=$('#probs');
+  if(!pred){box.innerHTML='<span class="muted">No prediction yet.</span>';probKeys='';return;}
+  const keys=Object.keys(pred.probs).sort((a,b)=>pred.probs[b]-pred.probs[a]).slice(0,6);const sig=keys.join('|');
+  if(sig!==probKeys){probKeys=sig;box.innerHTML=keys.map(k=>`<div class="prow" data-k="${esc(k)}"><span>${metaOf(k).emoji} ${esc(metaOf(k).name)}</span><div class="pbar"><i></i></div><span class="pv">0%</span></div>`).join('');}
+  box.querySelectorAll('.prow').forEach(r=>{const p=pred.probs[r.dataset.k]||0;r.querySelector('i').style.width=Math.round(p*100)+'%';r.querySelector('.pv').textContent=Math.round(p*100)+'%';});
+}
+function renderGuide(){
+  const keys=CORE.concat(state.bonus?['peace','point']:[]);
+  $('#guide').innerHTML=keys.map(k=>`<div><span style="font-size:22px">${metaOf(k).emoji}</span><b>${metaOf(k).name}</b><span class="muted">→ ${metaOf(k).action}</span></div>`).join('');
+}
+function updateReadout(info){
+  const {handPresent,stable,pred,avgC,hint,hintCls}=info;
+  const m=metaOf(stable||(pred&&pred.key));
+  if(!handPresent){$('#gEmoji').textContent='🫳';$('#gName').textContent='No hand';$('#gAction').textContent='Show your hand to the camera';}
+  else if(stable){$('#gEmoji').textContent=m.emoji;$('#gName').textContent=m.name;$('#gAction').textContent='→ '+m.action;}
+  else{$('#gEmoji').textContent='🤔';$('#gName').textContent='Not sure…';$('#gAction').textContent=pred?'Best guess: '+m.name+' ('+Math.round(pred.conf*100)+'%)':'Analysing…';}
+  const c=handPresent&&pred?pred.conf:0;
+  $('#gConf').textContent=Math.round(c*100)+'%';$('#confFill').style.width=Math.round(c*100)+'%';
+  $('#holdFill').style.width=Math.round(progress*100)+'%';
+  setStatus(hint,hintCls);
+  renderProbs(handPresent||state.mode==='tm'?pred:null);
+}
+
+/* ---------- Main loop ---------- */
+async function processFrame(res){
+  const now=performance.now();
+  frames++;if(now-fpsT>1000){fps=frames*1000/(now-fpsT);frames=0;fpsT=now;$('#fpsBadge').textContent=Math.round(fps)+' FPS';}
+  if(now-lightT>600){lightT=now;measureLight();}
+  const lms=(res&&res.multiHandLandmarks)||[],hd=(res&&res.multiHandedness)||[];
+  const hs=lms.map((lm,i)=>({lm,side:(hd[i]&&hd[i].label==='Left')?'Right':'Left',palm:d3(lm[0],lm[9]),pred:null}));
+  hs.sort((a,b)=>b.palm-a.palm);
+  const primary=hs[0]||null;
+  if(state.mode==='rules')hs.forEach(h=>h.pred=classifyRules(h.lm));
+  else if(state.mode==='knn')hs.forEach(h=>h.pred=classifyKNN(h.lm));
+  let pred=primary?primary.pred:null;
+  if(state.mode==='tm'){pred=await classifyTM();if(primary)primary.pred=pred;}
+  const handPresent=!!primary;
+
+  /* temporal smoothing */
+  if(pred&&(handPresent||state.mode==='tm')){hist.push({k:pred.key,c:pred.conf});if(hist.length>WIN)hist.shift();}else hist.length=0;
+  let stable=null,avgC=0;
+  if(hist.length>=5){
+    const m={};hist.forEach(x=>{if(x.c>=state.thr){const o=m[x.k]||(m[x.k]={n:0,s:0});o.n++;o.s+=x.c;}});
+    let best=null;for(const k in m)if(!best||m[k].n>m[best].n)best=k;
+    if(best&&m[best].n>=Math.ceil(hist.length*0.6)){stable=best;avgC=m[best].s/m[best].n;}
+  }
+  if(handPresent){stats.handFrames++;if(!stable)stats.uncertain++;if(stats.handFrames%15===0)renderStats();}
+
+  /* hold-to-confirm */
+  if(!test.active){
+    if(stable&&stable!=='none'){lastSeenT=now;if(stable!==holdKey){holdKey=stable;holdStart=now;fired=false;}}
+    else if(now-lastSeenT>400){holdKey=null;fired=false;}
+    progress=(holdKey&&stable===holdKey)?Math.min(1,(now-holdStart)/state.holdMs):0;
+    if(holdKey&&!fired&&progress>=1){fired=true;triggerAction(holdKey,avgC);}
+  }else{progress=0;handleTest(now,stable,avgC);}
+
+  /* recording samples */
+  if(rec&&primary&&now>rec.startAt&&now-rec.last>70){
+    addSample(rec.label,feat(primary.lm,false));rec.n++;rec.last=now;
+    if(rec.n>=rec.target){rec=null;saveSamples();toast('Recorded ✔ — try "Use trained model"');}
+    if(rec===null||rec.n%6===0)renderTrain();
+  }else if(rec&&now<rec.startAt&&Math.floor(now/250)%2===0){/* idle */}
+
+  /* hints */
+  let hint='Hold steady to trigger the action.',hintCls='good';
+  if(state.mode==='knn'&&samples.length<10){hint='No trained model yet. Open the Train tab and record your gestures.';hintCls='warn';}
+  else if(state.mode==='tm'&&!tmModel){hint='Load your Teachable Machine model below.';hintCls='warn';}
+  else if(!handPresent){hint=lum!=null&&lum<50?'No hand found. The room looks too dark.':'Show your hand to the camera.';hintCls=lum!=null&&lum<50?'bad':'';}
+  else{
+    const pm=primary.palm;const edge=primary.lm.some(p=>p.x<0.02||p.x>0.98||p.y<0.02||p.y>0.98);
+    if(lum!=null&&lum<50){hint='Too dark. Add light in front of you for better accuracy.';hintCls='bad';}
+    else if(lum!=null&&lum>190){hint='Image is over-exposed. Avoid a bright window or lamp behind or in front of the hand.';hintCls='warn';}
+    else if(edge){hint='Your hand is partly out of the frame.';hintCls='warn';}
+    else if(pm<0.07){hint='Move your hand a bit closer to the camera.';hintCls='warn';}
+    else if(!stable){hint='Not sure yet. Make the pose clearer and keep still.';hintCls='warn';}
+  }
+
+  drawFrame();
+  hs.forEach((h,i)=>drawHand(h,i===0));
+  updateReadout({handPresent,stable,pred,avgC,hint,hintCls});
+}
+async function loop(){
+  if(!running)return;
+  if(vid.readyState>=2&&!busy){
+    busy=true;
+    try{
+      let res=null;
+      const p=new Promise(r=>{hands.onResults(x=>{res=x;r();});});
+      await hands.send({image:vid});await Promise.race([p,new Promise(r=>setTimeout(r,200))]);
+      await processFrame(res);
+    }catch(err){console.error(err);}
+    busy=false;
+  }
+  requestAnimationFrame(loop);
+}
+
+/* ---------- Camera ---------- */
+async function initHands(){
+  if(typeof Hands==='undefined')throw new Error('Hand-tracking library could not be loaded. Check your internet connection.');
+  hands=new Hands({locateFile:f=>'https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/'+f});
+  hands.setOptions({maxNumHands:state.maxHands,modelComplexity:1,minDetectionConfidence:0.6,minTrackingConfidence:0.5});
+  await hands.initialize();
+}
+async function startCamera(){
+  stopCamera(true);
+  const id=$('#camSel').value;
+  stream=await navigator.mediaDevices.getUserMedia({video:{deviceId:id?{exact:id}:undefined,width:{ideal:960},height:{ideal:720},facingMode:'user'},audio:false});
+  vid.srcObject=stream;await vid.play();
+  cv.width=vid.videoWidth||960;cv.height=vid.videoHeight||720;
+  $('#videoWrap').style.aspectRatio=cv.width+'/'+cv.height;
+  try{const devs=(await navigator.mediaDevices.enumerateDevices()).filter(d=>d.kind==='videoinput');const sel=$('#camSel');const cur=sel.value;
+    sel.innerHTML='<option value="">Default</option>'+devs.map((d,i)=>`<option value="${esc(d.deviceId)}">${esc(d.label||'Camera '+(i+1))}</option>`).join('');sel.value=cur;}catch(e){}
+  running=true;
+  const lb=$('#liveBadge');lb.textContent='● LIVE';lb.className='badge live';
+  $('#empty').classList.add('hidden');$('#btnCam').textContent='Stop camera';
+  loop();
+}
+function stopCamera(silent){
+  running=false;
+  if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}
+  vid.srcObject=null;hist.length=0;holdKey=null;progress=0;rec=null;
+  if(test.active)endTest(true);
+  const lb=$('#liveBadge');lb.textContent='● CAMERA OFF';lb.className='badge off';
+  $('#empty').classList.remove('hidden');$('#btnCam').textContent='Start camera';
+  ctx.clearRect(0,0,cv.width,cv.height);
+  if(!silent)setStatus('Camera is off.');
+  renderTrain();
+}
+async function start(){
+  $('#loader').classList.remove('hidden');$('#loaderMsg').textContent='Loading hand-tracking model…';
+  try{
+    if(!hands)await initHands();
+    $('#loaderMsg').textContent='Starting camera…';
+    await startCamera();
+  }catch(err){
+    let msg=err.message||String(err);
+    if(err.name==='NotAllowedError')msg='Camera permission was denied. Allow camera access in your browser settings and try again.';
+    if(err.name==='NotFoundError')msg='No camera was found on this device.';
+    setStatus(msg,'bad');toast(msg);stopCamera(true);
+  }
+  $('#loader').classList.add('hidden');
+}
+function requestStart(){if(running){stopCamera();return;}$('#consent').classList.remove('hidden');}
+$('#btnCam').onclick=requestStart;$('#btnCam2').onclick=requestStart;
+$('#consentNo').onclick=()=>$('#consent').classList.add('hidden');
+$('#consentYes').onclick=()=>{$('#consent').classList.add('hidden');start();};
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&running){stopCamera();toast('Camera stopped because the tab was hidden');}});
+window.addEventListener('beforeunload',()=>{if(stream)stream.getTracks().forEach(t=>t.stop());});
+
+/* ---------- UI wiring ---------- */
+function setMode(m){
+  state.mode=m;hist.length=0;holdKey=null;
+  $$('#engineSeg button').forEach(b=>b.classList.toggle('active',b.dataset.mode===m));
+  $('#tmBox').classList.toggle('hidden',m!=='tm');
+}
+$('#engineSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(b)setMode(b.dataset.mode);});
+$('#btnTm').onclick=loadTM;
+$('#chkFlipTM').onchange=e=>state.flipTM=e.target.checked;
+function selectTab(t){$$('#tabs button').forEach(b=>b.classList.toggle('active',b.dataset.tab===t));$$('.panel').forEach(p=>p.classList.toggle('active',p.id==='p-'+t));}
+$('#tabs').addEventListener('click',e=>{const b=e.target.closest('button');if(b)selectTab(b.dataset.tab);});
+function thrMark(){$('#thrMark').style.left=Math.round(state.thr*100)+'%';}
+$('#thr').oninput=e=>{state.thr=e.target.value/100;$('#thrVal').textContent=e.target.value+'%';thrMark();};
+$('#hold').oninput=e=>{state.holdMs=+e.target.value;$('#holdVal').textContent=e.target.value+' ms';};
+$('#maxHands').onchange=e=>{state.maxHands=+e.target.value;if(hands)hands.setOptions({maxNumHands:state.maxHands});};
+$('#camSel').onchange=()=>{if(running)start();};
+$('#chkMirror').onchange=e=>state.mirror=e.target.checked;
+$('#chkLm').onchange=e=>state.landmarks=e.target.checked;
+$('#chkPriv').onchange=e=>{state.privacy=e.target.checked;toast(state.privacy?'Privacy mode on: camera image hidden':'Privacy mode off');};
+$('#chkBonus').onchange=e=>{state.bonus=e.target.checked;renderGuide();};
+$('#chkSound').onchange=e=>state.sound=e.target.checked;
+$('#chkVoice').onchange=e=>state.voice=e.target.checked;
+
+loadSamples();renderTrain();renderGuide();renderTests();renderLog();renderStats();thrMark();setLight(false);
+})();
+</script>
+</body>
+</html>
